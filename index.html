@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자연 일기 · Nature Diary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --green:#5a7a48; --green-light:#7ba267; --green-bg:rgba(107,142,90,0.1);
+    --ink:#3a3a30; --muted:#8a8a7a; --sage:#9aaa8a; --clay:#c97b5b;
+    --font-body:'Gowun Batang', serif; --font-hand:'Gaegu', cursive;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--font-body); color:var(--ink); min-height:100vh;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #eef3e6 0%, transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, #e8eef0 0%, transparent 55%),
+      #f6f4ee;
+  }
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:#cdd6c2;border-radius:8px;}
+  button{font-family:var(--font-body); cursor:pointer;}
+  textarea,input{font-family:var(--font-body);}
+  textarea:focus,input:focus{outline:none;border-color:var(--green-light)!important;box-shadow:0 0 0 3px rgba(107,142,90,0.12);}
+
+  /* animations */
+  .spin{animation:spin .9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .rise{animation:rise .5s cubic-bezier(.2,.7,.3,1) both;}
+  @keyframes rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+  .card{transition:transform .25s cubic-bezier(.2,.7,.3,1), box-shadow .25s;}
+  .card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(80,90,60,0.16)!important;}
+
+  /* header */
+  header{position:sticky;top:0;z-index:50;background:rgba(246,244,238,0.82);
+    backdrop-filter:blur(12px);border-bottom:1px solid rgba(107,142,90,0.14);}
+  .header-inner{max-width:1080px;margin:0 auto;padding:12px 20px;display:flex;
+    align-items:center;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:11px;background:none;border:none;padding:0;}
+  .brand-leaf{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+    background:linear-gradient(135deg,#7ba267,#5a7a48);box-shadow:0 4px 12px rgba(107,142,90,0.3);}
+  .brand-title{display:block;font-size:18px;font-weight:700;line-height:1.1;}
+  .brand-sub{display:block;font-size:10px;letter-spacing:2px;color:var(--sage);text-transform:uppercase;}
+  nav{display:flex;align-items:center;gap:8px;}
+  .nav-btn{display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:10px;border:none;
+    background:transparent;color:#6a6a5a;font-size:14px;font-weight:700;}
+  .nav-btn.active{background:var(--green-bg);color:#4a6638;}
+  .new-btn{display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:11px;border:none;
+    background:linear-gradient(135deg,#7ba267,#5a7a48);color:#fff;font-size:14px;font-weight:700;
+    box-shadow:0 4px 12px rgba(107,142,90,0.3);}
+
+  main{max-width:1080px;margin:0 auto;padding:0 20px 80px;}
+
+  /* empty */
+  .empty{text-align:center;padding:90px 20px;}
+  .empty-art{width:110px;height:110px;margin:0 auto 24px;border-radius:50%;display:grid;place-items:center;
+    background:radial-gradient(circle at 40% 35%,#fff,#eef3e6);box-shadow:0 8px 30px rgba(107,142,90,0.15);}
+  .empty-title{font-size:24px;font-weight:700;margin-bottom:12px;}
+  .empty-text{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:28px;}
+  .big-btn{display:inline-flex;align-items:center;gap:9px;padding:14px 26px;border-radius:14px;border:none;
+    background:linear-gradient(135deg,#7ba267,#5a7a48);color:#fff;font-size:16px;font-weight:700;
+    box-shadow:0 6px 20px rgba(107,142,90,0.35);}
+
+  /* page */
+  .page{padding-top:36px;}
+  .page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px;}
+  .page-title{font-size:30px;font-weight:700;letter-spacing:-0.5px;}
+  .page-sub{font-size:14px;color:var(--sage);margin-top:6px;}
+  .month-label{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;
+    color:#8a9a7a;margin-bottom:16px;padding:5px 12px;background:var(--green-bg);border-radius:20px;letter-spacing:.5px;}
+
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;}
+  .diary-card{text-align:left;border:1px solid rgba(107,142,90,0.12);border-radius:18px;overflow:hidden;
+    background:#fff;padding:0;box-shadow:0 4px 18px rgba(80,90,60,0.07);}
+  .diary-img-wrap{position:relative;aspect-ratio:4/3;overflow:hidden;background:#eef0e8;}
+  .diary-img{width:100%;height:100%;object-fit:cover;display:block;}
+  .theme-chip{position:absolute;left:12px;top:12px;color:#fff;font-size:11px;font-weight:700;
+    padding:4px 10px;border-radius:20px;}
+  .plant-badge{position:absolute;right:12px;top:12px;display:flex;align-items:center;gap:3px;
+    background:rgba(255,255,255,0.92);color:#5a7a48;font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px;}
+  .diary-body{padding:14px 16px 18px;}
+  .diary-date{font-size:11.5px;color:#a9a999;margin-bottom:6px;letter-spacing:.3px;}
+  .diary-title{font-size:17px;font-weight:700;margin-bottom:7px;line-height:1.3;}
+  .diary-excerpt{font-size:13.5px;color:#7a7a6a;line-height:1.6;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+  /* filter / gallery */
+  .filter-row{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:28px;}
+  .filter-chip{padding:8px 15px;border-radius:22px;border:1px solid rgba(107,142,90,0.22);
+    background:#fff;color:#6a6a5a;font-size:13.5px;font-weight:700;}
+  .filter-chip.active{background:var(--green);color:#fff;border-color:var(--green);}
+  .masonry{columns:4 220px;column-gap:16px;}
+  .gallery-item{display:block;width:100%;margin-bottom:16px;break-inside:avoid;border:none;border-radius:16px;
+    overflow:hidden;padding:0;background:#fff;box-shadow:0 4px 16px rgba(80,90,60,0.08);position:relative;}
+  .gallery-img{width:100%;display:block;}
+  .gallery-caption{position:absolute;bottom:0;left:0;right:0;padding:20px 14px 12px;
+    background:linear-gradient(transparent,rgba(40,45,30,0.7));color:#fff;font-size:13.5px;font-weight:700;text-align:left;}
+
+  /* compose */
+  .back-link{display:inline-flex;align-items:center;gap:3px;background:none;border:none;color:#6a8a58;
+    font-size:14px;font-weight:700;margin-bottom:18px;padding:0;}
+  .compose-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;}
+  .drop-zone{aspect-ratio:1/1;border-radius:20px;border:2px dashed rgba(107,142,90,0.4);
+    background:rgba(255,255,255,0.6);display:grid;place-items:center;position:relative;overflow:hidden;}
+  .drop-img{width:100%;height:100%;object-fit:cover;}
+  .remove-img{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:none;
+    background:rgba(0,0,0,0.5);color:#fff;display:grid;place-items:center;}
+  .drop-empty{text-align:center;padding:20px;}
+  .drop-icon{width:64px;height:64px;margin:0 auto 14px;border-radius:18px;background:var(--green-bg);display:grid;place-items:center;}
+  .drop-title{font-size:16px;font-weight:700;margin-bottom:5px;color:#4a6638;}
+  .drop-hint{font-size:13px;color:var(--sage);}
+  .identify-btn{width:100%;margin-top:14px;padding:13px;border-radius:13px;border:1.5px solid var(--green-light);
+    background:rgba(123,162,103,0.1);color:#4a6638;font-size:14.5px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;gap:8px;}
+  .id-error{font-size:13px;color:var(--clay);margin-top:10px;line-height:1.6;}
+
+  .plant-info{margin-top:16px;padding:18px 20px;border-radius:16px;background:rgba(255,255,255,0.8);
+    border:1px solid rgba(107,142,90,0.2);}
+  .plant-info-head{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#6b8e5a;
+    text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+  .plant-name{font-size:20px;font-weight:700;margin-bottom:3px;}
+  .plant-sci{font-size:13px;color:var(--sage);margin-bottom:10px;}
+  .plant-desc{font-size:14px;color:#5a5a4a;line-height:1.7;margin-bottom:12px;}
+  .care-row{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:10px;}
+  .care-item{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#6a6a5a;}
+  .fun-fact{font-size:13px;color:#7a6a4a;padding:10px 12px;border-radius:10px;
+    background:rgba(201,164,91,0.1);line-height:1.6;}
+
+  .form-col{display:flex;flex-direction:column;}
+  .field-label{font-size:13px;font-weight:700;color:#7a8a6a;margin-bottom:7px;margin-top:16px;}
+  .input,.textarea{padding:12px 14px;border-radius:11px;border:1.5px solid rgba(107,142,90,0.2);
+    background:rgba(255,255,255,0.7);font-size:15px;color:var(--ink);width:100%;}
+  .textarea{resize:vertical;line-height:1.7;}
+  .theme-pick{display:flex;flex-wrap:wrap;gap:8px;}
+  .theme-opt{padding:8px 13px;border-radius:20px;border:1.5px solid rgba(107,142,90,0.22);
+    background:#fff;color:#6a6a5a;font-size:13px;font-weight:700;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .save-btn{margin-top:26px;padding:15px;border-radius:14px;border:none;
+    background:linear-gradient(135deg,#7ba267,#5a7a48);color:#fff;font-size:16px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 6px 20px rgba(107,142,90,0.3);}
+  .save-btn:disabled{background:#cdd6c2;cursor:not-allowed;box-shadow:none;}
+
+  /* detail / cardnews */
+  .detail-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .detail-hint{text-align:center;font-size:13px;color:var(--sage);margin:8px 0 20px;}
+  .delete-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:11px;
+    border:1px solid rgba(201,123,91,0.3);background:#fff;color:var(--clay);font-size:14px;font-weight:700;}
+  .download-btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:11px;border:none;
+    background:linear-gradient(135deg,#7ba267,#5a7a48);color:#fff;font-size:14px;font-weight:700;
+    box-shadow:0 4px 14px rgba(107,142,90,0.3);}
+  .card-stage{display:flex;justify-content:center;}
+  .news-card{width:440px;padding:34px 34px 26px;border-radius:26px;position:relative;overflow:hidden;
+    box-shadow:0 20px 60px rgba(80,90,60,0.2);}
+  .card-deco{position:absolute;top:-20px;right:-20px;transform:rotate(20deg);pointer-events:none;}
+  .news-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;position:relative;}
+  .news-theme{font-size:14px;font-weight:700;}
+  .news-date{font-size:12.5px;color:#9a9a86;font-family:var(--font-hand);}
+  .news-img-frame{border-radius:18px;overflow:hidden;margin-bottom:20px;position:relative;
+    box-shadow:0 8px 24px rgba(0,0,0,0.12);border:5px solid #fff;}
+  .news-img{width:100%;display:block;aspect-ratio:4/3;object-fit:cover;}
+  .news-title{font-size:25px;font-weight:700;margin-bottom:10px;line-height:1.3;position:relative;}
+  .news-meta{display:flex;align-items:center;gap:9px;font-size:13.5px;color:#7a7a66;margin-bottom:14px;font-family:var(--font-hand);}
+  .news-note{font-size:15.5px;color:#4a4a3a;line-height:1.85;margin-bottom:18px;position:relative;white-space:pre-wrap;}
+  .news-plant{padding:16px 18px;border-radius:16px;background:rgba(255,255,255,0.55);
+    border:1px solid rgba(107,142,90,0.18);margin-bottom:16px;position:relative;}
+  .news-plant-head{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:700;margin-bottom:8px;flex-wrap:wrap;}
+  .news-plant-sci{font-size:12px;color:var(--sage);font-weight:400;font-style:italic;}
+  .news-plant-desc{font-size:13.5px;color:#5a5a4a;line-height:1.7;margin-bottom:10px;}
+  .news-care-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .news-care-item{font-size:12px;color:#6a6a5a;padding:5px 11px;border-radius:18px;background:var(--green-bg);}
+  .news-footer{margin-top:8px;padding-top:16px;border-top:1px dashed rgba(107,142,90,0.3);
+    display:flex;justify-content:center;position:relative;}
+  .news-brand{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#8a9a7a;
+    font-family:var(--font-hand);letter-spacing:.5px;}
+
+  .center{display:flex;flex-direction:column;align-items:center;padding:120px 0;}
+
+  @media(max-width:720px){
+    .compose-grid{grid-template-columns:1fr;}
+    .brand-sub{display:none;}
+    .nav-btn span{display:none;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <button class="brand" onclick="go('garden')">
+      <span class="brand-leaf">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+      </span>
+      <span>
+        <span class="brand-title">자연 일기</span>
+        <span class="brand-sub">Nature Diary</span>
+      </span>
+    </button>
+    <nav>
+      <button class="nav-btn" id="nav-garden" onclick="go('garden')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+        <span>일기</span>
+      </button>
+      <button class="nav-btn" id="nav-gallery" onclick="go('gallery')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/></svg>
+        <span>모아보기</span>
+      </button>
+      <button class="new-btn" onclick="go('compose')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>
+        새 기록
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<script>
+/* ============================================================
+   상태 & 데이터 (localStorage 영속 저장)
+   ============================================================ */
+const THEMES = [
+  { id:"plant", label:"식물", color:"#6b8e5a", emoji:"🌿" },
+  { id:"flower", label:"꽃", color:"#c97b9a", emoji:"🌸" },
+  { id:"tree", label:"나무", color:"#7a6b4f", emoji:"🌳" },
+  { id:"sky", label:"하늘", color:"#7fa8c9", emoji:"☁️" },
+  { id:"sea", label:"바다·물", color:"#5b9aa0", emoji:"🌊" },
+  { id:"animal", label:"동물", color:"#c98a5b", emoji:"🐾" },
+  { id:"drawing", label:"그림", color:"#9a7bc9", emoji:"🎨" },
+  { id:"etc", label:"그 외", color:"#8a8a7a", emoji:"✨" },
+];
+const themeById = id => THEMES.find(t=>t.id===id) || THEMES[7];
+const CARD_GRADIENTS = [
+  ["#f4f1e8","#e8e3d3"],["#eef3e9","#dde8d6"],["#f3ece9","#e6d8d2"],
+  ["#e9eff3","#d5e2ea"],["#f3f0e9","#e7e0cf"],
+];
+const WD = ["일","월","화","수","목","금","토"];
+const STORE_KEY = "nature-diary-entries";
+
+let state = {
+  view: "garden",
+  entries: loadEntries(),
+  activeId: null,
+  filterTheme: "all",
+  // compose draft
+  draft: newDraft(),
+};
+
+function newDraft(){
+  return { image:null, title:"", note:"", theme:"plant", mood:"", location:"", plant:null, identifying:false, idError:"" };
+}
+function loadEntries(){
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+  catch(e){ return []; }
+}
+function persist(){
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state.entries)); } catch(e){}
+}
+function esc(s){ return (s||"").replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* icons (inline svg helper) */
+function ic(path, size=16, color="currentColor", sw=2){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+}
+const I = {
+  leaf:'<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>',
+  flower:'<circle cx="12" cy="12" r="3"/><path d="M12 16.5A4.5 4.5 0 1 1 7.5 12 4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 1 1 4.5 4.5 4.5 4.5 0 1 1-4.5 4.5"/><path d="M12 7.5V9M7.5 12H9M12 16.5V15M16.5 12H15"/>',
+  camera:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+  image:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  sparkles:'<path d="M9.9 2.4 8.6 6.1 4.9 7.4 8.6 8.7 9.9 12.4 11.2 8.7 14.9 7.4 11.2 6.1z"/><path d="M18 9l-.7 2-2 .7 2 .7.7 2 .7-2 2-.7-2-.7z"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>',
+  droplet:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+  calendar:'<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/>',
+  chevronLeft:'<path d="m15 18-6-6 6-6"/>',
+  trash:'<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  loader:'<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
+  pen:'<path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  mappin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+};
+
+/* ============================================================
+   라우팅
+   ============================================================ */
+function go(view, id){
+  state.view = view;
+  if(id) state.activeId = id;
+  if(view==="compose") state.draft = newDraft();
+  render();
+}
+function setActive(view){
+  document.getElementById("nav-garden").classList.toggle("active", view==="garden");
+  document.getElementById("nav-gallery").classList.toggle("active", view==="gallery");
+}
+
+/* ============================================================
+   렌더
+   ============================================================ */
+function render(){
+  setActive(state.view);
+  const app = document.getElementById("app");
+  if(state.view==="garden") app.innerHTML = renderGarden();
+  else if(state.view==="gallery") app.innerHTML = renderGallery();
+  else if(state.view==="compose"){ app.innerHTML = renderCompose(); bindCompose(); }
+  else if(state.view==="detail") app.innerHTML = renderDetail();
+}
+
+/* ---- 정원 ---- */
+function renderGarden(){
+  const e = state.entries;
+  if(e.length===0){
+    return `<div class="empty">
+      <div class="empty-art">${ic(I.flower,56,"#a9bf9a",1.3)}</div>
+      <h2 class="empty-title">아직 비어 있는 정원이에요</h2>
+      <p class="empty-text">오늘 마주친 식물, 하늘, 바다 — 사진을 찍거나 직접 그린 그림을<br>첫 번째 기록으로 남겨보세요.</p>
+      <button class="big-btn" onclick="go('compose')">${ic(I.camera,18,"#fff")} 첫 기록 남기기</button>
+    </div>`;
+  }
+  const groups = {};
+  e.forEach(en=>{
+    const d=new Date(en.createdAt);
+    const k=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}`;
+    (groups[k]=groups[k]||[]).push(en);
+  });
+  let html = `<div class="page">
+    <div class="page-head"><div>
+      <h1 class="page-title">나의 자연 일기</h1>
+      <p class="page-sub">${e.length}개의 기록이 자라고 있어요</p>
+    </div></div>`;
+  for(const [month, items] of Object.entries(groups)){
+    html += `<section style="margin-bottom:38px">
+      <h3 class="month-label">${ic(I.calendar,14)} ${month}</h3>
+      <div class="card-grid">${items.map((en,i)=>diaryCard(en,i)).join("")}</div>
+    </section>`;
+  }
+  return html + `</div>`;
+}
+function diaryCard(en, i){
+  const t = themeById(en.theme);
+  const d = new Date(en.createdAt);
+  return `<button class="diary-card card rise" style="animation-delay:${i*0.05}s" onclick="go('detail','${en.id}')">
+    <div class="diary-img-wrap">
+      <img class="diary-img" src="${en.image}" alt="">
+      <span class="theme-chip" style="background:${t.color}">${t.emoji} ${t.label}</span>
+      ${en.plant ? `<span class="plant-badge">${ic(I.sparkles,11)} 식물정보</span>` : ""}
+    </div>
+    <div class="diary-body">
+      <div class="diary-date">${d.getMonth()+1}월 ${d.getDate()}일 · ${WD[d.getDay()]}요일</div>
+      <h4 class="diary-title">${esc(en.title)||"제목 없는 기록"}</h4>
+      <p class="diary-excerpt">${esc(en.note)}</p>
+    </div>
+  </button>`;
+}
+
+/* ---- 모아보기 ---- */
+function renderGallery(){
+  const counts = {};
+  state.entries.forEach(en=>counts[en.theme]=(counts[en.theme]||0)+1);
+  const filtered = state.filterTheme==="all" ? state.entries : state.entries.filter(en=>en.theme===state.filterTheme);
+  let chips = `<button class="filter-chip ${state.filterTheme==="all"?"active":""}" onclick="setFilter('all')">전체 ${state.entries.length}</button>`;
+  chips += THEMES.map(t=>{
+    const active = state.filterTheme===t.id;
+    const style = active ? `style="background:${t.color};border-color:${t.color};color:#fff"` : "";
+    return `<button class="filter-chip ${active?"active":""}" ${style} onclick="setFilter('${t.id}')">${t.emoji} ${t.label}${counts[t.id]?` · ${counts[t.id]}`:""}</button>`;
+  }).join("");
+
+  let body;
+  if(filtered.length===0){
+    body = `<div class="empty" style="padding-top:40px"><p class="empty-text">이 주제에는 아직 기록이 없어요.</p></div>`;
+  } else {
+    body = `<div class="masonry">${filtered.map(en=>`
+      <button class="gallery-item card" onclick="go('detail','${en.id}')">
+        <img class="gallery-img" src="${en.image}" alt="">
+        <div class="gallery-caption">${esc(en.title)||"기록"}</div>
+      </button>`).join("")}</div>`;
+  }
+  return `<div class="page">
+    <div class="page-head"><div>
+      <h1 class="page-title">주제별로 모아보기</h1>
+      <p class="page-sub">관심 가는 주제를 골라 한눈에 둘러보세요</p>
+    </div></div>
+    <div class="filter-row">${chips}</div>
+    ${body}
+  </div>`;
+}
+function setFilter(id){ state.filterTheme = id; render(); }
+
+/* ---- 작성 ---- */
+function renderCompose(){
+  const d = state.draft;
+  const themeOpts = THEMES.map(t=>{
+    const active = d.theme===t.id;
+    const style = active ? `style="background:${t.color};color:#fff;border-color:${t.color}"` : "";
+    return `<button type="button" class="theme-opt" ${style} onclick="setDraftTheme('${t.id}')">${t.emoji} ${t.label}</button>`;
+  }).join("");
+
+  return `<div style="padding-top:24px">
+    <button class="back-link" onclick="go('garden')">${ic(I.chevronLeft,18)} 정원으로</button>
+    <div class="compose-grid">
+      <div>
+        <div class="drop-zone" id="dropZone">
+          ${d.image
+            ? `<img class="drop-img" src="${d.image}" alt=""><button class="remove-img" onclick="removeImage(event)">${ic(I.x,16,"#fff")}</button>`
+            : `<div class="drop-empty">
+                 <div class="drop-icon">${ic(I.image,30,"#6b8e5a")}</div>
+                 <p class="drop-title">사진 또는 그림 올리기</p>
+                 <p class="drop-hint">클릭하거나 이미지를 끌어다 놓으세요</p>
+               </div>`}
+        </div>
+        <input type="file" id="fileInput" accept="image/*" style="display:none">
+        ${d.image ? `<button class="identify-btn" id="identifyBtn" onclick="identifyPlant()" ${d.identifying?"disabled style=opacity:.7":""}>
+          ${d.identifying ? `${ic(I.loader,16,"currentColor")} <span class="spin-host">식물을 살펴보는 중…</span>` : `${ic(I.sparkles,16)} AI로 식물 정보 찾기`}
+        </button>`:""}
+        ${d.idError ? `<p class="id-error">${esc(d.idError)}</p>`:""}
+        ${d.plant ? plantInfoCard(d.plant):""}
+      </div>
+
+      <div class="form-col">
+        <label class="field-label">제목</label>
+        <input class="input" id="f-title" placeholder="오늘의 한 줄 제목" value="${esc(d.title)}">
+        <label class="field-label">오늘의 느낌</label>
+        <textarea class="textarea" id="f-note" rows="6" placeholder="무엇을 보았고 어떤 기분이 들었나요? 마주친 순간을 적어보세요…">${esc(d.note)}</textarea>
+        <label class="field-label">주제</label>
+        <div class="theme-pick">${themeOpts}</div>
+        <div class="two-col" style="margin-top:0">
+          <div>
+            <label class="field-label">기분</label>
+            <input class="input" id="f-mood" placeholder="예: 평온함 🌤" value="${esc(d.mood)}">
+          </div>
+          <div>
+            <label class="field-label">장소</label>
+            <input class="input" id="f-location" placeholder="예: 동네 공원" value="${esc(d.location)}">
+          </div>
+        </div>
+        <button class="save-btn" id="saveBtn" onclick="saveEntry()" disabled>${ic(I.pen,17,"#fff")} 기록 저장하기</button>
+      </div>
+    </div>
+  </div>`;
+}
+function plantInfoCard(p){
+  return `<div class="plant-info rise">
+    <div class="plant-info-head">${ic(I.sparkles,15,"#6b8e5a")} AI가 찾은 식물 정보</div>
+    <h4 class="plant-name">${esc(p.name)}</h4>
+    ${p.scientificName?`<p class="plant-sci"><i>${esc(p.scientificName)}</i>${p.family?` · ${esc(p.family)}`:""}</p>`:""}
+    ${p.description?`<p class="plant-desc">${esc(p.description)}</p>`:""}
+    <div class="care-row">
+      ${p.care&&p.care.light?`<span class="care-item">${ic(I.sun,13,"#c9a45b")} ${esc(p.care.light)}</span>`:""}
+      ${p.care&&p.care.water?`<span class="care-item">${ic(I.droplet,13,"#5b9aa0")} ${esc(p.care.water)}</span>`:""}
+    </div>
+    ${p.funFact?`<p class="fun-fact">💡 ${esc(p.funFact)}</p>`:""}
+  </div>`;
+}
+
+function bindCompose(){
+  const fileInput = document.getElementById("fileInput");
+  const dropZone = document.getElementById("dropZone");
+  if(!fileInput) return;
+  if(!state.draft.image){
+    dropZone.onclick = ()=> fileInput.click();
+  }
+  fileInput.onchange = e=> onFile(e.target.files[0]);
+  dropZone.ondragover = e=> e.preventDefault();
+  dropZone.ondrop = e=>{ e.preventDefault(); onFile(e.dataTransfer.files[0]); };
+
+  // 입력값 동기화
+  ["title","note","mood","location"].forEach(f=>{
+    const el = document.getElementById("f-"+f);
+    if(el) el.oninput = ()=>{ state.draft[f]=el.value; updateSaveBtn(); };
+  });
+  // 로더 회전
+  const spinHost = document.querySelector("#identifyBtn .spin-host");
+  const loaderSvg = document.querySelector("#identifyBtn svg");
+  if(state.draft.identifying && loaderSvg) loaderSvg.classList.add("spin");
+  updateSaveBtn();
+}
+function updateSaveBtn(){
+  const btn = document.getElementById("saveBtn");
+  if(!btn) return;
+  const d = state.draft;
+  btn.disabled = !(d.image && (d.title || d.note));
+}
+function onFile(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    state.draft.image = ev.target.result;
+    state.draft.plant = null;
+    state.draft.idError = "";
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+function removeImage(e){
+  e.stopPropagation();
+  state.draft.image = null;
+  state.draft.plant = null;
+  render();
+}
+function setDraftTheme(id){ state.draft.theme = id; render(); }
+
+/* ---- AI 식물 정보 찾기 ---- */
+async function identifyPlant(){
+  const d = state.draft;
+  if(!d.image) return;
+  d.identifying = true; d.idError = ""; d.plant = null;
+  render();
+  try{
+    const base64 = d.image.split(",")[1];
+    const mediaType = d.image.substring(d.image.indexOf(":")+1, d.image.indexOf(";"));
+    const res = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1000,
+        messages:[{
+          role:"user",
+          content:[
+            { type:"image", source:{ type:"base64", media_type:mediaType, data:base64 } },
+            { type:"text", text:
+              "이 사진 속 식물(또는 꽃/나무)을 식별해줘. 확신이 없으면 가장 가능성 높은 후보로 알려줘. " +
+              "반드시 아래 JSON 형식만 출력하고 다른 말, 마크다운 백틱은 절대 쓰지 마. " +
+              '식물이 아니면 {"isPlant": false} 만 출력해.\n' +
+              '{"isPlant": true, "name": "일반명(한국어)", "scientificName": "학명", ' +
+              '"family": "과", "description": "두세 문장의 친근한 설명", ' +
+              '"care": {"light": "빛 요구(짧게)", "water": "물 주기(짧게)"}, ' +
+              '"funFact": "흥미로운 한 줄 사실"}' }
+          ]
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").replace(/```json|```/g,"").trim();
+    const parsed = JSON.parse(text);
+    if(parsed.isPlant){
+      d.plant = parsed;
+      if(!d.title) d.title = parsed.name;
+    } else {
+      d.idError = "사진에서 식물을 또렷하게 찾지 못했어요. 식물이 잘 보이는 사진으로 다시 시도해 보세요.";
+    }
+  }catch(e){
+    d.idError = "식물 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.";
+  }finally{
+    d.identifying = false;
+    render();
+  }
+}
+
+function saveEntry(){
+  const d = state.draft;
+  if(!(d.image && (d.title||d.note))) return;
+  const entry = {
+    id:`${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+    createdAt:Date.now(),
+    image:d.image, title:d.title, note:d.note, theme:d.theme,
+    mood:d.mood, location:d.location, plant:d.plant,
+    gradient:CARD_GRADIENTS[Math.floor(Math.random()*CARD_GRADIENTS.length)],
+  };
+  state.entries.unshift(entry);
+  state.entries.sort((a,b)=>b.createdAt-a.createdAt);
+  persist();
+  state.activeId = entry.id;
+  go("detail");
+}
+
+/* ---- 상세 + 카드뉴스 ---- */
+function renderDetail(){
+  const en = state.entries.find(e=>e.id===state.activeId);
+  if(!en) return renderGarden();
+  const t = themeById(en.theme);
+  const d = new Date(en.createdAt);
+  const dateStr = `${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()}. ${WD[d.getDay()]}요일`;
+  const [g1,g2] = en.gradient || CARD_GRADIENTS[0];
+
+  return `<div style="padding-top:24px">
+    <div class="detail-bar">
+      <button class="back-link" style="margin:0" onclick="go('garden')">${ic(I.chevronLeft,18)} 정원으로</button>
+      <div style="display:flex;gap:10px">
+        <button class="delete-btn" onclick="deleteEntry('${en.id}')">${ic(I.trash,15)} 삭제</button>
+        <button class="download-btn" id="dlBtn" onclick="downloadPNG()">${ic(I.download,16,"#fff")} PNG로 저장</button>
+      </div>
+    </div>
+    <p class="detail-hint">아래 카드가 그대로 카드뉴스 이미지로 저장돼요 ↓</p>
+    <div class="card-stage">
+      <div class="news-card" id="newsCard" style="background:linear-gradient(160deg,${g1},${g2})">
+        <div class="card-deco">${ic(I.leaf,120,"rgba(107,142,90,0.07)")}</div>
+        <div class="news-top">
+          <span class="news-theme" style="color:${t.color}">${t.emoji} ${t.label}</span>
+          <span class="news-date">${dateStr}</span>
+        </div>
+        <div class="news-img-frame"><img class="news-img" src="${en.image}" alt="" crossorigin="anonymous"></div>
+        <h2 class="news-title">${esc(en.title)||"오늘의 기록"}</h2>
+        ${(en.mood||en.location)?`<div class="news-meta">
+          ${en.mood?`<span>${esc(en.mood)}</span>`:""}
+          ${en.mood&&en.location?`<span style="opacity:.4">·</span>`:""}
+          ${en.location?`<span>${ic(I.mappin,12)} ${esc(en.location)}</span>`:""}
+        </div>`:""}
+        ${en.note?`<p class="news-note">${esc(en.note)}</p>`:""}
+        ${en.plant?`<div class="news-plant">
+          <div class="news-plant-head">
+            ${ic(I.leaf,14,t.color)}
+            <span>${esc(en.plant.name)}</span>
+            ${en.plant.scientificName?`<i class="news-plant-sci">${esc(en.plant.scientificName)}</i>`:""}
+          </div>
+          ${en.plant.description?`<p class="news-plant-desc">${esc(en.plant.description)}</p>`:""}
+          <div class="news-care-row">
+            ${en.plant.care&&en.plant.care.light?`<span class="news-care-item">☀️ ${esc(en.plant.care.light)}</span>`:""}
+            ${en.plant.care&&en.plant.care.water?`<span class="news-care-item">💧 ${esc(en.plant.care.water)}</span>`:""}
+          </div>
+        </div>`:""}
+        <div class="news-footer">
+          <span class="news-brand">${ic(I.leaf,13)} 자연 일기 · Nature Diary</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function deleteEntry(id){
+  if(!confirm("이 기록을 삭제할까요?")) return;
+  state.entries = state.entries.filter(e=>e.id!==id);
+  persist();
+  go("garden");
+}
+
+async function downloadPNG(){
+  const btn = document.getElementById("dlBtn");
+  const card = document.getElementById("newsCard");
+  const en = state.entries.find(e=>e.id===state.activeId);
+  if(!card) return;
+  btn.innerHTML = `${ic(I.loader,16,"#fff")} 저장 중…`;
+  btn.querySelector("svg").classList.add("spin");
+  btn.disabled = true;
+  try{
+    const canvas = await html2canvas(card, { scale:2, useCORS:true, backgroundColor:null, logging:false });
+    const link = document.createElement("a");
+    const d = new Date(en.createdAt);
+    link.download = `자연일기_${(en.title||`${d.getMonth()+1}월${d.getDate()}일`).replace(/[\\/:*?"<>|]/g,"")}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }catch(e){
+    alert("이미지 저장 중 문제가 생겼어요. 다시 시도해 주세요.");
+  }finally{
+    btn.innerHTML = `${ic(I.download,16,"#fff")} PNG로 저장`;
+    btn.disabled = false;
+  }
+}
+
+/* 시작 */
+render();
+</script>
+</body>
+</html>
