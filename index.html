@@ -72,6 +72,8 @@
   .page-sub{font-size:14px;color:var(--sage);margin-top:6px;}
   .month-label{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;
     color:#8a9a7a;margin-bottom:16px;padding:5px 12px;background:var(--green-bg);border-radius:20px;letter-spacing:.5px;}
+  .saved-badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:#4a6638;
+    background:var(--green-bg);border:none;padding:8px 13px;border-radius:20px;}
 
   .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;}
   .diary-card{text-align:left;border:1px solid rgba(107,142,90,0.12);border-radius:18px;overflow:hidden;
@@ -179,6 +181,37 @@
 
   .center{display:flex;flex-direction:column;align-items:center;padding:120px 0;}
 
+  /* archive */
+  .archive-status{background:rgba(255,255,255,0.7);border:1px solid rgba(107,142,90,0.18);
+    border-radius:18px;padding:22px 24px;margin-bottom:24px;}
+  .status-row{margin-bottom:16px;}
+  .status-ok{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:700;color:#4a6638;
+    background:var(--green-bg);padding:7px 14px;border-radius:20px;}
+  .status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .status-cell{display:flex;flex-direction:column;gap:3px;padding:12px 16px;border-radius:13px;
+    background:rgba(246,244,238,0.7);}
+  .status-num{font-size:24px;font-weight:700;color:var(--ink);line-height:1.1;}
+  .status-cap{font-size:12px;color:var(--sage);}
+  .archive-cards{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px;}
+  .archive-card{background:#fff;border:1px solid rgba(107,142,90,0.14);border-radius:18px;padding:24px;
+    box-shadow:0 4px 18px rgba(80,90,60,0.06);}
+  .ac-icon{width:52px;height:52px;border-radius:15px;display:grid;place-items:center;margin-bottom:14px;}
+  .ac-title{font-size:18px;font-weight:700;margin-bottom:8px;}
+  .ac-desc{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:18px;}
+  .ac-btn{display:inline-flex;align-items:center;gap:7px;padding:11px 18px;border-radius:11px;
+    border:1.5px solid rgba(95,134,168,0.4);background:#fff;color:#5f86a8;font-size:14px;font-weight:700;}
+  .ac-btn.primary{border:none;background:linear-gradient(135deg,#7ba267,#5a7a48);color:#fff;
+    box-shadow:0 4px 12px rgba(107,142,90,0.28);}
+  .ac-btn.danger{border:1px solid rgba(201,123,91,0.35);color:var(--clay);background:#fff;}
+  .ac-btn:disabled{opacity:.45;cursor:not-allowed;}
+  .archive-note{font-size:13.5px;color:#7a7a66;line-height:1.8;background:rgba(201,164,91,0.08);
+    border:1px solid rgba(201,164,91,0.2);border-radius:14px;padding:16px 20px;}
+
+  @media(max-width:720px){
+    .status-grid{grid-template-columns:1fr;}
+    .archive-cards{grid-template-columns:1fr;}
+  }
+
   @media(max-width:720px){
     .compose-grid{grid-template-columns:1fr;}
     .brand-sub{display:none;}
@@ -206,6 +239,10 @@
       <button class="nav-btn" id="nav-gallery" onclick="go('gallery')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/></svg>
         <span>모아보기</span>
+      </button>
+      <button class="nav-btn" id="nav-archive" onclick="go('archive')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/></svg>
+        <span>보관함</span>
       </button>
       <button class="new-btn" onclick="go('compose')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>
@@ -244,6 +281,7 @@ let state = {
   entries: loadEntries(),
   activeId: null,
   filterTheme: "all",
+  lastSavedAt: getSavedAt(),
   // compose draft
   draft: newDraft(),
 };
@@ -256,7 +294,20 @@ function loadEntries(){
   catch(e){ return []; }
 }
 function persist(){
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(state.entries)); } catch(e){}
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state.entries));
+    localStorage.setItem(STORE_KEY+":savedAt", String(Date.now()));
+    state.lastSavedAt = Date.now();
+    return true;
+  } catch(e){
+    // 저장 공간 초과 등
+    alert("기기에 저장하지 못했어요. 저장 공간이 가득 찼을 수 있어요.\n[보관함]에서 백업 파일로 내보내 두는 걸 권장해요.");
+    return false;
+  }
+}
+function getSavedAt(){
+  const v = localStorage.getItem(STORE_KEY+":savedAt");
+  return v ? Number(v) : null;
 }
 function esc(s){ return (s||"").replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -280,6 +331,10 @@ const I = {
   loader:'<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
   pen:'<path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   mappin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+  save:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',
+  upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  archive:'<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/>',
 };
 
 /* ============================================================
@@ -294,6 +349,7 @@ function go(view, id){
 function setActive(view){
   document.getElementById("nav-garden").classList.toggle("active", view==="garden");
   document.getElementById("nav-gallery").classList.toggle("active", view==="gallery");
+  document.getElementById("nav-archive").classList.toggle("active", view==="archive");
 }
 
 /* ============================================================
@@ -304,6 +360,7 @@ function render(){
   const app = document.getElementById("app");
   if(state.view==="garden") app.innerHTML = renderGarden();
   else if(state.view==="gallery") app.innerHTML = renderGallery();
+  else if(state.view==="archive") app.innerHTML = renderArchive();
   else if(state.view==="compose"){ app.innerHTML = renderCompose(); bindCompose(); }
   else if(state.view==="detail") app.innerHTML = renderDetail();
 }
@@ -326,10 +383,15 @@ function renderGarden(){
     (groups[k]=groups[k]||[]).push(en);
   });
   let html = `<div class="page">
-    <div class="page-head"><div>
-      <h1 class="page-title">나의 자연 일기</h1>
-      <p class="page-sub">${e.length}개의 기록이 자라고 있어요</p>
-    </div></div>`;
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">나의 자연 일기</h1>
+        <p class="page-sub">${e.length}개의 기록이 자라고 있어요</p>
+      </div>
+      <button class="saved-badge" onclick="go('archive')" title="보관함으로 이동">
+        ${ic(I.check,13,"#5a7a48")} 이 기기에 저장됨
+      </button>
+    </div>`;
   for(const [month, items] of Object.entries(groups)){
     html += `<section style="margin-bottom:38px">
       <h3 class="month-label">${ic(I.calendar,14)} ${month}</h3>
@@ -387,6 +449,126 @@ function renderGallery(){
   </div>`;
 }
 function setFilter(id){ state.filterTheme = id; render(); }
+
+/* ---- 보관함 (백업 / 복원) ---- */
+function renderArchive(){
+  const n = state.entries.length;
+  const savedAt = state.lastSavedAt;
+  const savedStr = savedAt
+    ? (()=>{ const d=new Date(savedAt); return `${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()}. ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; })()
+    : "아직 없음";
+
+  // 대략적인 저장 용량 계산
+  let sizeStr = "—";
+  try{
+    const bytes = new Blob([localStorage.getItem(STORE_KEY)||""]).size;
+    sizeStr = bytes > 1048576 ? `${(bytes/1048576).toFixed(1)} MB` : `${Math.max(1,Math.round(bytes/1024))} KB`;
+  }catch(e){}
+
+  return `<div class="page">
+    <div class="page-head"><div>
+      <h1 class="page-title">보관함</h1>
+      <p class="page-sub">기록을 기기에 안전하게 보관하고 옮겨보세요</p>
+    </div></div>
+
+    <div class="archive-status">
+      <div class="status-row">
+        <span class="status-ok">${ic(I.check,15,"#5a7a48")} 이 기기에 자동 저장되고 있어요</span>
+      </div>
+      <div class="status-grid">
+        <div class="status-cell"><span class="status-num">${n}</span><span class="status-cap">개의 기록</span></div>
+        <div class="status-cell"><span class="status-num">${sizeStr}</span><span class="status-cap">저장 용량</span></div>
+        <div class="status-cell"><span class="status-num" style="font-size:15px">${savedStr}</span><span class="status-cap">마지막 저장</span></div>
+      </div>
+    </div>
+
+    <div class="archive-cards">
+      <div class="archive-card">
+        <div class="ac-icon" style="background:rgba(107,142,90,0.12)">${ic(I.save,24,"#5a7a48")}</div>
+        <h3 class="ac-title">백업 파일로 내보내기</h3>
+        <p class="ac-desc">모든 기록을 하나의 파일(.json)로 저장해요. 다른 기기로 옮기거나, 만약을 대비한 백업으로 보관할 수 있어요.</p>
+        <button class="ac-btn primary" onclick="exportBackup()" ${n===0?"disabled":""}>${ic(I.download,16,"#fff")} 백업 내보내기</button>
+      </div>
+
+      <div class="archive-card">
+        <div class="ac-icon" style="background:rgba(127,168,201,0.16)">${ic(I.upload,24,"#5f86a8")}</div>
+        <h3 class="ac-title">백업 파일 불러오기</h3>
+        <p class="ac-desc">내보냈던 백업 파일을 선택하면 기록이 복원돼요. 지금 있는 기록과 합쳐지며, 같은 기록은 중복되지 않아요.</p>
+        <button class="ac-btn" onclick="document.getElementById('importInput').click()">${ic(I.upload,16,"#5f86a8")} 백업 불러오기</button>
+        <input type="file" id="importInput" accept="application/json,.json" style="display:none" onchange="importBackup(event)">
+      </div>
+    </div>
+
+    <div class="archive-note">
+      💡 <b>알아두기</b> — 기록은 기본적으로 이 브라우저 안에 저장돼요. 브라우저 데이터를 지우거나 다른 기기에서 열면 보이지 않으니, 가끔 <b>백업 내보내기</b>로 파일을 따로 보관해 두면 안전해요.
+      ${n>0?`<div style="margin-top:14px"><button class="ac-btn danger" onclick="clearAll()">${ic(I.trash,15,"#c97b5b")} 모든 기록 삭제</button></div>`:""}
+    </div>
+  </div>`;
+}
+
+function exportBackup(){
+  if(state.entries.length===0) return;
+  const payload = {
+    app: "nature-diary",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    count: state.entries.length,
+    entries: state.entries,
+  };
+  const blob = new Blob([JSON.stringify(payload)], { type:"application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const d = new Date();
+  const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+  link.download = `자연일기_백업_${stamp}.json`;
+  link.href = url;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function importBackup(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const data = JSON.parse(ev.target.result);
+      const incoming = Array.isArray(data) ? data : (data.entries || []);
+      if(!Array.isArray(incoming) || incoming.length===0){
+        alert("이 파일에서 기록을 찾지 못했어요. 자연 일기에서 내보낸 백업 파일인지 확인해 주세요.");
+        return;
+      }
+      // id 기준 병합 (중복 제거)
+      const existingIds = new Set(state.entries.map(en=>en.id));
+      let added = 0;
+      incoming.forEach(en=>{
+        if(en && en.id && en.image && !existingIds.has(en.id)){
+          state.entries.push(en);
+          existingIds.add(en.id);
+          added++;
+        }
+      });
+      state.entries.sort((a,b)=>b.createdAt-a.createdAt);
+      persist();
+      e.target.value = "";
+      render();
+      alert(added>0
+        ? `${added}개의 기록을 불러왔어요!`
+        : "새로 추가된 기록은 없어요. (이미 모두 가지고 있는 기록이에요)");
+    }catch(err){
+      alert("파일을 읽지 못했어요. 올바른 백업 파일(.json)인지 확인해 주세요.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+function clearAll(){
+  if(!confirm(`정말 모든 기록(${state.entries.length}개)을 삭제할까요?\n이 작업은 되돌릴 수 없어요. 먼저 백업을 내보내 두는 걸 권장해요.`)) return;
+  if(!confirm("한 번 더 확인할게요. 정말 전부 삭제하시겠어요?")) return;
+  state.entries = [];
+  persist();
+  render();
+}
 
 /* ---- 작성 ---- */
 function renderCompose(){
